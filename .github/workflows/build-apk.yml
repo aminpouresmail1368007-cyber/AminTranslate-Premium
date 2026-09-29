@@ -1,4 +1,4 @@
-name: Build AminTranslate APK
+name: Build AminTranslate Native Pro APK
 
 on:
   workflow_dispatch:
@@ -12,56 +12,31 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
-      - name: Recreate Android project
+      - name: Recreate native Android project
         shell: bash
         run: |
-          curl -L "https://raw.githubusercontent.com/aminpouresmail1368007-cyber/AminTranslate-Premium/af40a89f3579dc78c05829a6e48753236b07ae5f/.github/workflows/build-apk.yml" -o old-workflow.yml
-          awk '/cat > project.b64/{flag=1;next}/^EOF_PROJECT$/{flag=0}flag' old-workflow.yml > project.b64
-          base64 -d project.b64 > project.zip
-          unzip -q project.zip
-
-      - name: Fix Android XML namespaces
-        shell: bash
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-
-          files = [
-              Path("AminTranslate_Android_Premium/app/src/main/res/layout/activity_about.xml"),
-              Path("AminTranslate_Android_Premium/app/src/main/res/layout/activity_settings.xml"),
-          ]
-
-          for p in files:
-              s = p.read_text(encoding="utf-8")
-              if 'xmlns:app=' not in s:
-                  s = s.replace(
-                      'xmlns:android="http://schemas.android.com/apk/res/android"',
-                      'xmlns:android="http://schemas.android.com/apk/res/android"\n    xmlns:app="http://schemas.android.com/apk/res-auto"',
-                      1
-                  )
-              p.write_text(s, encoding="utf-8")
-          PY
-
-      - name: Set up Java 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-
-      - name: Set up Gradle 8.7
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.7'
-
-      - name: Build debug APK
-        working-directory: AminTranslate_Android_Premium
-        run: gradle assembleDebug --stacktrace
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: AminTranslate-Premium-APK
-          path: AminTranslate_Android_Premium/app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: error
+          cat > project.b64 <<'EOF_PROJECT'
+          UEsDBAoAAAAAACItPV0AAAAAAAAAAAAAAAAXABwAQW1pblRyYW5zbGF0ZU5hdGl2ZVByby9VVAkA
+          A29Pu2pvT7tqdXgLAAEEAAAAAATpAwAAUEsDBBQAAAAIACItPV0LvDKgzgAAAIABAAAmABwAQW1p
+          blRyYW5zbGF0ZU5hdGl2ZVByby9zZXR0aW5ncy5ncmFkbGVVVAkAA29Pu2pvT7tqdXgLAAEEAAAA
+          AATpAwAArY/BagIxEIbveYrcopf1LvQgotBS3bB6X4bNkMZmZ0IyKxTx3d1KWcSDp/7Hb/4Z5ktx
+          8IF2QOCxRxJ9UXpMxsQlCOeA5Q/9xjP7iLP5BHo4I63HvQzxAfsMLqK937acZRpe1VUphwnJIXU/
+          DRaOgwR+/cGOHVYFZdY8w+3q/bOt961t6o/N+tg2G1sf5v+hcMf6oocctfkSSWW5WJyCJOi+q8Bm
+          VJmEMrPYzCfspCLoUb9ps+oDHTNQiSC4BwlnHCtGBeri4FCbJaRk1A1QSwMECgAAAAAAIi09XQAA
+          AAAAAAAAAAAAABsAHABBbWluVHJhbnNsYXRlTmF0aXZlUHJvL2FwcC9VVAkAA29Pu2pvT7tqdXgL
+          AAEEAAAAAATpAwAAUEsDBAoAAAAAABQtPV0AAAAAAAAAAAAAAAAfABwAQW1pblRyYW5zbGF0ZU5h
+          dGl2ZVByby9hcHAvc3JjL1VUCQADWE+7alhPu2p1eAsAAQQAAAAABOkDAABQSwMECgAAAAAAIi09
+          XQAAAAAAAAAAAAAAACQAHABBbWluVHJhbnNsYXRlTmF0aXZlUHJvL2FwcC9zcmMvbWFpbi9VVAkA
+          A29Pu2pvT7tqdXgLAAEEAAAAAATpAwAAUEsDBAoAAAAAABQtPV0AAAAAAAAAAAAAAAAoABwAQW1p
+          blRyYW5zbGF0ZU5hdGl2ZVByby9hcHAvc3JjL21haW4vcmVzL1VUCQADWE+7alhPu2p1eAsAAQQA
+          AAAABOkDAABQSwMECgAAAAAAIi09XQAAAAAAAAAAAAAAAC8AHABBbWluVHJhbnNsYXRlTmF0aXZl
+          UHJvL2FwcC9zcmMvbWFpbi9yZXMvdmFsdWVzL1VUCQADb0+7am9Pu2p1eAsAAQQAAAAABOkDAABQ
+          SwMEFAAAAAgAIi09XcPI6+/kAAAA2gEAADkAHABBbWluVHJhbnNsYXRlTmF0aXZlUHJvL2FwcC9z
+          cmMvbWFpbi9yZXMvdmFsdWVzL3RoZW1lcy54bWxVVAkAA29Pu2pvT7tqdXgLAAEEAAAAAATpAwAA
+          lZHBbsIwDIbvPEUUzmvpadOUFjEkToMdxgtYjVssJc6UuGW8/bIWpO0yMZ/9+bP9m/Wnd2rEmChw
+          ratipRVyGyxxX+tBuocnvW4WJmIKQ2wxNQuVyyS5OFQMHmt9PKHHYuOJjxE4ORA8gNCIWn1ARJZa
+          A9sYyD5PWDkD+9wXCVxxCJtWsv4Fop7HTwoS9FfDDe8Cyw48uYtuUlaZ8rvpb+ZMbMP5lfqTvAvI
+          kCZNBy7hPXi6MdvgQgaXq8eqqnb3oAwj9XC97P/4vPj8mn2w+JZTcpAvlzj8Wt2U01tzSuWPmL4A
