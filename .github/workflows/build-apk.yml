@@ -21,6 +21,9 @@ jobs:
       - name: Extract native project
         run: unzip -q AminTranslateNativePro.zip
 
+      - name: Fix Compose import
+        run: sed -i '/import androidx.compose.foundation.layout.weight/d' AminTranslateNativePro/app/src/main/java/com/amintranslate/nativepro/MainActivity.kt
+
       - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
