@@ -45,7 +45,7 @@ jobs:
           set -euo pipefail
           test -n "$SIGNING_B64" || { echo "Missing AMIN_MARKET_SIGNING_B64 repository secret"; exit 2; }
           mkdir -p "$RUNNER_TEMP/amin-signing"
-          printf '%s' "$SIGNING_B64" | base64 --decode > "$RUNNER_TEMP/amin-signing/bundle.zip"
+          printf '%s' "$SIGNING_B64" | tr -d '\r\n\t ' | base64 --decode --ignore-garbage > "$RUNNER_TEMP/amin-signing/bundle.zip"
           unzip -q "$RUNNER_TEMP/amin-signing/bundle.zip" -d "$RUNNER_TEMP/amin-signing"
           chmod 600 "$RUNNER_TEMP/amin-signing/AminTranslate-Market-Release.jks"
 
