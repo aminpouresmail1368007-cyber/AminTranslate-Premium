@@ -1,0 +1,84 @@
+name: Build AminTranslate Market Release
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  market-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Extract market source
+        run: |
+          rm -rf AminTranslateNativePro
+          unzip -q AminTranslateNativePro_MarketRelease.zip
+
+      - name: Fix Compose import
+        run: sed -i '/import androidx.compose.foundation.layout.weight/d' AminTranslateNativePro/app/src/main/java/com/amintranslate/nativepro/MainActivity.kt
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle 8.7
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Restore private signing bundle
+        shell: bash
+        env:
+          SIGNING_B64: ${{ secrets.AMIN_MARKET_SIGNING_B64 }}
+        run: |
+          set -euo pipefail
+          test -n "$SIGNING_B64" || { echo "Missing AMIN_MARKET_SIGNING_B64 repository secret"; exit 2; }
+          mkdir -p "$RUNNER_TEMP/amin-signing"
+          printf '%s' "$SIGNING_B64" | base64 --decode > "$RUNNER_TEMP/amin-signing/bundle.zip"
+          unzip -q "$RUNNER_TEMP/amin-signing/bundle.zip" -d "$RUNNER_TEMP/amin-signing"
+          chmod 600 "$RUNNER_TEMP/amin-signing/AminTranslate-Market-Release.jks"
+
+      - name: Build unsigned release APK
+        working-directory: AminTranslateNativePro
+        run: gradle assembleRelease --stacktrace
+
+      - name: Align, sign and verify Market APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          SIGN_DIR="$RUNNER_TEMP/amin-signing"
+          source "$SIGN_DIR/signing.properties"
+          echo "::add-mask::$STORE_PASSWORD"
+          echo "::add-mask::$KEY_PASSWORD"
+          BT="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
+          UNSIGNED="AminTranslateNativePro/app/build/outputs/apk/release/app-release-unsigned.apk"
+          ALIGNED="$RUNNER_TEMP/AminTranslate-Market-V4-aligned.apk"
+          FINAL="$GITHUB_WORKSPACE/AminTranslate-Market-V4.apk"
+          "$BT/zipalign" -f -p 4 "$UNSIGNED" "$ALIGNED"
+          "$BT/apksigner" sign \
+            --ks "$SIGN_DIR/AminTranslate-Market-Release.jks" \
+            --ks-key-alias "$KEY_ALIAS" \
+            --ks-pass "pass:$STORE_PASSWORD" \
+            --key-pass "pass:$KEY_PASSWORD" \
+            --out "$FINAL" \
+            "$ALIGNED"
+          "$BT/apksigner" verify --verbose --print-certs "$FINAL"
+          "$BT/zipalign" -c -p 4 "$FINAL"
+
+      - name: Upload signed Market APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: AminTranslate-Market-Release-V4
+          path: AminTranslate-Market-V4.apk
+          if-no-files-found: error
