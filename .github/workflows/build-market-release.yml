@@ -40,12 +40,16 @@ jobs:
       - name: Restore private signing bundle
         shell: bash
         env:
-          SIGNING_B64: ${{ secrets.AMIN_MARKET_SIGNING_B64 }}
+          SIGNING_PASS: ${{ secrets.AMIN_MARKET_SIGNING_PASS }}
         run: |
           set -euo pipefail
-          test -n "$SIGNING_B64" || { echo "Missing AMIN_MARKET_SIGNING_B64 repository secret"; exit 2; }
+          test -n "$SIGNING_PASS" || { echo "Missing AMIN_MARKET_SIGNING_PASS repository secret"; exit 2; }
+          test -f "AminTranslate-Market-Signing.enc" || { echo "Missing encrypted signing file"; exit 3; }
           mkdir -p "$RUNNER_TEMP/amin-signing"
-          printf '%s' "$SIGNING_B64" | tr -d '\r\n\t ' | base64 --decode --ignore-garbage > "$RUNNER_TEMP/amin-signing/bundle.zip"
+          openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 \
+            -in "AminTranslate-Market-Signing.enc" \
+            -out "$RUNNER_TEMP/amin-signing/bundle.zip" \
+            -pass env:SIGNING_PASS
           unzip -q "$RUNNER_TEMP/amin-signing/bundle.zip" -d "$RUNNER_TEMP/amin-signing"
           chmod 600 "$RUNNER_TEMP/amin-signing/AminTranslate-Market-Release.jks"
 
