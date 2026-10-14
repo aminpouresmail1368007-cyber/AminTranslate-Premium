@@ -21,7 +21,7 @@ jobs:
       - name: Extract market source
         run: |
           rm -rf AminTranslateNativePro
-          unzip -q AminTranslateNativePro_MarketRelease.zip
+          unzip -q AminTranslateNativePro_MarketRelease_V4.2.6.zip
 
       - name: Fix Compose import
         run: sed -i '/import androidx.compose.foundation.layout.weight/d' AminTranslateNativePro/app/src/main/java/com/amintranslate/nativepro/MainActivity.kt
@@ -69,7 +69,9 @@ jobs:
           UNSIGNED="AminTranslateNativePro/app/build/outputs/apk/release/app-release-unsigned.apk"
           ALIGNED="$RUNNER_TEMP/AminTranslate-Market-V4-aligned.apk"
           FINAL="$GITHUB_WORKSPACE/AminTranslate-Market-V4.apk"
+
           "$BT/zipalign" -f -p 4 "$UNSIGNED" "$ALIGNED"
+
           "$BT/apksigner" sign \
             --ks "$SIGN_DIR/AminTranslate-Market-Release.jks" \
             --ks-key-alias "$KEY_ALIAS" \
@@ -77,6 +79,7 @@ jobs:
             --key-pass "pass:$KEY_PASSWORD" \
             --out "$FINAL" \
             "$ALIGNED"
+
           "$BT/apksigner" verify --verbose --print-certs "$FINAL"
           "$BT/zipalign" -c -p 4 "$FINAL"
 
